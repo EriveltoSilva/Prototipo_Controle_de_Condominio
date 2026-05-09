@@ -270,7 +270,7 @@ void setup() {
   // pinMode(WATER_TRIG_PIN,  OUTPUT);
   // pinMode(WATER_ECHO_PIN,  INPUT);
   pinMode(FIRE_SENSOR_PIN, INPUT_PULLUP);
-  // pinMode(RAIN_SENSOR_PIN, INPUT);
+  pinMode(RAIN_SENSOR_PIN, INPUT);
 
   lcd.init();
   lcd.backlight();
@@ -305,9 +305,9 @@ void loop() {
   if ((uint32_t)(millis() - lastDataSend) >= DATA_SEND_MS) {
     lastDataSend = millis();
     readFire(&fire);
+    readRain(&rain);
     // readWaterLevel(&waterLevel);
     // readSmoke(&smoke);
-    // readRain(&rain);
     sendDataPacket();
     digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
   }
@@ -474,11 +474,11 @@ void readSmoke(SmokeSensor *ss) {
 }
 
 void readFire(FireSensor *fs) {
-  fs->detected = (bool)!digitalRead(fs->pin);
+  fs->detected = (bool)!digitalRead(fs->pin); // LOW activo na maioria dos módulos
 }
 
 void readRain(RainSensor *rs) {
-  rs->raining = !digitalRead(rs->pin);  // LOW activo na maioria dos módulos
+  rs->raining = digitalRead(rs->pin);  // HIGH activo na maioria dos módulos
 }
 
 const char *waterStatusName(float dist) {
