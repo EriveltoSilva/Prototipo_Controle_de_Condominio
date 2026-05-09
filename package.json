@@ -1,7 +1,7 @@
 {
-  "name": "kilamba-controller",
+  "name": "gestao-centralidade",
   "version": "1.0.0",
-  "description": "Desktop control panel for Centralidade do Kilamba",
+  "description": "Painel de controlo para a Gestao da Centralidade",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -37,8 +37,9 @@
     "vite": "^5.3.1"
   },
   "build": {
-    "appId": "com.kilamba.controller",
-    "productName": "Kilamba Controller",
+    "appId": "com.gestao.centralidade",
+    "productName": "Gestao da Centralidade",
+    "icon": "icon.png",
     "directories": { "output": "dist" },
     "files": ["out/**/*", "package.json"],
     "asarUnpack": [

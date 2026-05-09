@@ -1,6 +1,6 @@
 # Building the Installer
 
-This guide explains how to produce the Windows installer and portable archive for the **Kilamba Controller** desktop application.
+This guide explains how to produce the Windows installer and portable archive for the **Gestao da Centralidade** desktop application.
 
 ---
 
@@ -19,7 +19,6 @@ This guide explains how to produce the Windows installer and portable archive fo
 npm install
 npm run rebuild
 npm run package
-
 ```
 ---
 
@@ -83,9 +82,9 @@ All output is written to the `dist/` folder:
 
 ```
 dist/
-  Kilamba Controller Setup 1.0.0.exe       NSIS installer
-  Kilamba Controller Setup 1.0.0.exe.blockmap
-  Kilamba Controller-1.0.0-win.zip         Portable archive
+  Gestao da Centralidade Setup 1.0.0.exe       NSIS installer
+  Gestao da Centralidade Setup 1.0.0.exe.blockmap
+  Gestao da Centralidade-1.0.0-win.zip         Portable archive
   win-unpacked/                            Unpacked app (used by both outputs)
   latest.yml                               Auto-update metadata
   builder-effective-config.yaml            Resolved build config (for debugging)
@@ -101,7 +100,7 @@ dist/
 
 ### Portable (`-win.zip`)
 
-- Extract anywhere and run `Kilamba Controller.exe` directly
+- Extract anywhere and run `Gestao da Centralidade.exe` directly
 - No installation required
 - Useful for sharing on a USB drive or running without admin rights
 
@@ -114,7 +113,7 @@ The electron-builder configuration lives in the `"build"` field of `package.json
 ```json
 "build": {
   "appId": "com.kilamba.controller",
-  "productName": "Kilamba Controller",
+  "productName": "Gestao da Centralidade",
   "directories": { "output": "dist" },
   "files": ["out/**/*", "package.json"],
   "asarUnpack": [

@@ -13,7 +13,7 @@ function createWindow(): void {
     minHeight: 700,
     show: false,
     autoHideMenuBar: true,
-    title: 'Kilamba Controller',
+    title: 'Gestao da Centralidade',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

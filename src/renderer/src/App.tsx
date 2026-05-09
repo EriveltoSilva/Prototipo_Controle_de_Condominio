@@ -1,4 +1,5 @@
-import { Radio, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import logo from "./assets/logo.png";
 import { ActivityLog } from "./components/ActivityLog";
 import { GatePanel } from "./components/GatePanel";
 import { ReservoirPanel } from "./components/ReservoirPanel";
@@ -32,8 +33,8 @@ export default function App() {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-border px-5 py-3">
         <div className="flex items-center gap-2">
-          <Radio className="h-5 w-5 text-primary" />
-          <span className="text-sm font-semibold tracking-wide">Centralidade do Kilamba</span>
+          <img src={logo} alt="Logo" className="h-7 w-7 object-contain" />
+          <span className="text-sm font-semibold tracking-wide">Gestao da Centralidade</span>
           <span className="text-xs text-muted-foreground">— Painel de Controlo</span>
         </div>
 

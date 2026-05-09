@@ -265,8 +265,8 @@ Output in `dist/`:
 
 | File | Description |
 |------|-------------|
-| Kilamba Controller Setup 1.0.0.exe | NSIS installer (~77 MB) |
-| Kilamba Controller-1.0.0-win.zip | Portable archive (~106 MB) |
+| Gestao da Centralidade Setup 1.0.0.exe | NSIS installer (~77 MB) |
+| Gestao da Centralidade-1.0.0-win.zip | Portable archive (~106 MB) |
 
 ---
 
