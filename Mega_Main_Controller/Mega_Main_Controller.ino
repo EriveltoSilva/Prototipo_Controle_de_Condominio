@@ -1,32 +1,30 @@
 /**
- * AUTOR:  Erivelto Silva
- * PROJETO: Centralidade do Kilamba — Sistema de Controlo Integrado
- * MCU:    Arduino Mega 2560
- * DATA:   09-05-2026
+ * AUTOR...:  Erivelto Silva
+ * PROJECTO: Centralidade do Kilamba — Sistema de Controlo Integrado
+ * MCU.....:    Arduino Mega 2560
+ * DATA....:   09-05-2026
  *
  * Componentes:
  *   - 2 Semáforos (3 LEDs cada: Vermelho/Amarelo/Verde)
  *   - 3 Luzes de Rua (LED/Relé)
-
- *   - Sensor de Fumo MQ (analógico)
  *   - Sensor de Fogo (digital)
  *   - Sensor de Chuva (digital)
  *   - Sensor de Nível de Água HC-SR04 (ultrassónico)
- *   - 4 Servos de Portão (Lado A: entrada+saída, Lado B: entrada+saída)
+ *   - 4 Servos de Portão (Lado A: entrada+saída, Lado B: entrada+saída) - (Laranja: Sinal PWM, Castanho: GND, Vermelho: +5v)
  *   - LCD 16x4 I2C (rotação de páginas a cada 2 s)
  *
  * Protocolo Serial (→ Desktop):
  *   $TL1:<R|Y|G>,TL2:<R|Y|G>,SL1:<0|1>,SL2:<0|1>,SL3:<0|1>,
- *    SM:<0-1023>,FR:<0|1>,WL:<cm>,RN:<0|1>,
+ *    FR:<0|1>,WL:<cm>,RN:<0|1>,
  *    GAI:<O|C>,GAO:<O|C>,GBI:<O|C>,GBO:<O|C>,TLE:<0|1>#\n
  *
  * Comandos (Desktop →, 3 chars + '\n'):
- *   TLO                          — Ligar semáforos (ciclo automático)
- *   TLX                          — Desligar semáforos (todos apagados)
- *   L1O/L1X  L2O/L2X  L3O/L3X    — Luzes de Rua (X=apagar)
- *   AIO/AIC  AOO/AOC             — Portão A Entrada/Saída Open/Close
- *   BIO/BIC  BOO/BOC             — Portão B Entrada/Saída Open/Close
- *   REQ                          — Pedir pacote imediato
+ *   TLO                                                            — Ligar semáforos (ciclo automático)
+ *   TLX                                                            — Desligar semáforos (todos apagados)
+ *   L1O/L1X  L2O/L2X  L3O/L3X  LOO(LIGAR TODAS) LXX(APAGAR TODAS)  — Luzes de Rua (X=apagar)
+ *   AIO/AIC  AOO/AOC                                               — Portão A Entrada/Saída Open/Close
+ *   BIO/BIC  BOO/BOC                                               — Portão B Entrada/Saída Open/Close
+ *   REQ                                                            — Pedir pacote imediato
  */
 
 // ============================================================
@@ -223,7 +221,7 @@ void closeGate(Servo *s, GateState *state);
 void checkAutoClose(Servo *s, GateState *state, uint32_t *timer);
 const char *gateStateName(GateState s);
 
-float measureDistance(uint8_t trigPin, uint8_t echoPin);
+// float measureDistance(uint8_t trigPin, uint8_t echoPin);
 void readWaterLevel(WaterLevelSensor *ws);
 void readFire(FireSensor *fs);
 void readRain(RainSensor *rs);
@@ -257,11 +255,9 @@ void setup() {
   initStreetlight(&sl2);
   initStreetlight(&sl3);
 
-  // initGate(&gateA, &servoAIn, &servoAOut, GATE_A_IN_PIN, GATE_A_OUT_PIN);
-  // initGate(&gateB, &servoBIn, &servoBOut, GATE_B_IN_PIN, GATE_B_OUT_PIN);
+  initGate(&gateA, &servoAIn, &servoAOut, GATE_A_IN_PIN, GATE_A_OUT_PIN);
+  initGate(&gateB, &servoBIn, &servoBOut, GATE_B_IN_PIN, GATE_B_OUT_PIN);
 
-  // pinMode(WATER_TRIG_PIN,  OUTPUT);
-  // pinMode(WATER_ECHO_PIN,  INPUT);
   pinMode(FIRE_SENSOR_PIN, INPUT_PULLUP);
   pinMode(RAIN_SENSOR_PIN, INPUT);
 
@@ -290,10 +286,10 @@ void loop() {
   updateTrafficLights();
   handleSerialCommand();
 
-  // checkAutoClose(&servoAIn,  &gateA.entranceState, &gateA.entranceTimer);
-  // checkAutoClose(&servoAOut, &gateA.exitState,     &gateA.exitTimer);
-  // checkAutoClose(&servoBIn,  &gateB.entranceState, &gateB.entranceTimer);
-  // checkAutoClose(&servoBOut, &gateB.exitState,     &gateB.exitTimer);
+  checkAutoClose(&servoAIn,  &gateA.entranceState, &gateA.entranceTimer);
+  checkAutoClose(&servoAOut, &gateA.exitState,     &gateA.exitTimer);
+  checkAutoClose(&servoBIn,  &gateB.entranceState, &gateB.entranceTimer);
+  checkAutoClose(&servoBOut, &gateB.exitState,     &gateB.exitTimer);
 
   if ((uint32_t)(millis() - lastDataSend) >= DATA_SEND_MS) {
     lastDataSend = millis();
@@ -316,7 +312,6 @@ void loop() {
 // ============================================================
 // SEMÁFOROS
 // ============================================================
-
 void initTrafficLight(TrafficLight *tl) {
   pinMode(tl->redPin, OUTPUT);
   pinMode(tl->yellowPin, OUTPUT);
@@ -392,54 +387,6 @@ void initStreetlight(Streetlight *sl) {
 void setStreetlight(Streetlight *sl, bool on) {
   digitalWrite(sl->pin, on ? HIGH : LOW);
   sl->isOn = on;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ============================================================
-// PORTÕES / SERVOS
-// ============================================================
-
-void initGate(GatePair *gp, Servo *sIn, Servo *sOut, uint8_t pinIn, uint8_t pinOut) {
-  sIn->attach(pinIn);
-  sOut->attach(pinOut);
-  delay(50);
-  closeGate(sIn, &gp->entranceState);
-  closeGate(sOut, &gp->exitState);
-  gp->entranceTimer = 0;
-  gp->exitTimer = 0;
-}
-
-void openGate(Servo *s, GateState *state, uint32_t *timer) {
-  s->write(SERVO_OPEN_ANGLE);
-  *state = GATE_OPEN;
-  *timer = millis();
-}
-
-void closeGate(Servo *s, GateState *state) {
-  s->write(SERVO_CLOSE_ANGLE);
-  *state = GATE_CLOSED;
-}
-
-void checkAutoClose(Servo *s, GateState *state, uint32_t *timer) {
-  if (*state == GATE_OPEN && (uint32_t)(millis() - *timer) >= GATE_AUTO_CLOSE_MS)
-    closeGate(s, state);
-}
-
-const char *gateStateName(GateState s) {
-  return (s == GATE_OPEN) ? "ABERTO " : "FECHADO";
 }
 
 // ============================================================
@@ -544,6 +491,11 @@ void handleSerialCommand() {
             setStreetlight(&sl2, false);
             setStreetlight(&sl3, false);
           }
+          else if (c0 == 'L' && c1 == 'O' && c2 == 'O') {
+            setStreetlight(&sl1, true);
+            setStreetlight(&sl2, true);
+            setStreetlight(&sl3, true);
+          }
           // Portão A — Entrada
           else if (c0 == 'A' && c1 == 'I' && c2 == 'O')
             openGate(&servoAIn, &gateA.entranceState, &gateA.entranceTimer);
@@ -568,6 +520,64 @@ void handleSerialCommand() {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================================
+// PORTÕES / SERVOS
+// ============================================================
+
+void initGate(GatePair *gp, Servo *sIn, Servo *sOut, uint8_t pinIn, uint8_t pinOut) {
+  sIn->attach(pinIn);
+  sOut->attach(pinOut);
+  delay(50);
+  closeGate(sIn, &gp->entranceState);
+  closeGate(sOut, &gp->exitState);
+  gp->entranceTimer = 0;
+  gp->exitTimer = 0;
+}
+
+void openGate(Servo *s, GateState *state, uint32_t *timer) {
+  s->write(SERVO_OPEN_ANGLE);
+  *state = GATE_OPEN;
+  *timer = millis();
+}
+
+void closeGate(Servo *s, GateState *state) {
+  s->write(SERVO_CLOSE_ANGLE);
+  *state = GATE_CLOSED;
+}
+
+void checkAutoClose(Servo *s, GateState *state, uint32_t *timer) {
+  if (*state == GATE_OPEN && (uint32_t)(millis() - *timer) >= GATE_AUTO_CLOSE_MS)
+    closeGate(s, state);
+}
+
+const char *gateStateName(GateState s) {
+  return (s == GATE_OPEN) ? "ABERTO " : "FECHADO";
+}
+
+
+
+
+
+
+
+
+
 
 // ============================================================
 // LCD
