@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DUINO AI | Arduino Day</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link href="./dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <header>
+    <nav class="navbar">
+      <div class="nav-brand">
+        <span class="brand-name">DUINO<span class="accent"> AI</span></span>
+        <span class="brand-sub">ESP32 &mdash; Arduino Days 2026</span>
+      </div>
+      <div class="nav-center">
+        <img src="./Arduino_DAYS2026_Logo.png" alt="Arduino Days 2026" class="nav-arduino-logo">
+      </div>
+      <div class="nav-right">
+        <span class="status-dot"></span>
+        <span class="status-label">Online</span>
+        <a href="/login" class="nav-link">Sair</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="layout">
+
+      <!-- Left: sensor cards + LED -->
+      <div class="cards-area">
+
+        <div class="section-title">
+          <span class="section-line"></span>
+          <span>Sensores &amp; Controlo</span>
+          <span class="section-line"></span>
+        </div>
+
+        <div class="cards-grid">
+
+          <!-- Temperature -->
+          <div class="card" id="cardTemp">
+            <div class="card-glow"></div>
+            <div class="card-header-row">
+              <span class="card-label">TEMPERATURA</span>
+              <span class="card-badge">DHT11</span>
+            </div>
+            <div class="card-value-row">
+              <span class="card-icon temp-icon">&#9651;</span>
+              <span class="card-value mono" id="temperatureSensor">--.-</span>
+              <span class="card-unit">°C</span>
+            </div>
+            <div class="card-bar">
+              <div class="card-bar-fill temp-bar" id="tempBar"></div>
+            </div>
+          </div>
+
+          <!-- Humidity -->
+          <div class="card" id="cardHumid">
+            <div class="card-glow card-glow-blue"></div>
+            <div class="card-header-row">
+              <span class="card-label">HUMIDADE</span>
+              <span class="card-badge">DHT11</span>
+            </div>
+            <div class="card-value-row">
+              <span class="card-icon humid-icon">&#9652;</span>
+              <span class="card-value mono" id="humiditySensor">--.-</span>
+              <span class="card-unit">%</span>
+            </div>
+            <div class="card-bar">
+              <div class="card-bar-fill humid-bar" id="humidBar"></div>
+            </div>
+          </div>
+
+          <!-- LED -->
+          <div class="card card-led" id="cardLed">
+            <div class="card-glow card-glow-led" id="ledGlow"></div>
+            <div class="card-header-row">
+              <span class="card-label">LED ONBOARD</span>
+              <span class="card-badge" id="ledBadge">OFF</span>
+            </div>
+            <div class="led-visual-row">
+              <div class="led-bulb" id="ledBulb">
+                <div class="led-core"></div>
+                <div class="led-ring"></div>
+              </div>
+              <div class="led-info">
+                <span class="led-state" id="ledStateText">Desligado</span>
+                <span class="led-pin">PIN 2</span>
+              </div>
+            </div>
+            <button id="btnLed" class="btn btn-primary">&#9654; LIGAR</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: chat sidebar -->
+      <div class="chat-sidebar">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <div class="ai-avatar">AI</div>
+            <div>
+              <div class="chat-title">DUINO AI</div>
+              <div class="chat-subtitle" id="aiStatus">pronto para ajudar</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="message bot">
+            <div class="msg-bubble">
+              Olá! Sou o <strong>DUINO AI</strong>. Posso ligar/desligar o LED e responder às suas perguntas sobre o
+              ambiente.
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" placeholder="Digite um comando ou pergunta..." autocomplete="off" />
+          <button id="btnSend" title="Enviar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span>&copy; 2026 Erivelto da Costa e Silva &mdash; Arduino Days</span>
+      <div class="footer-sponsor">
+        <span class="sponsor-label">Patrocinado por</span>
+        <a href="https://tecmicro.ao">
+          <img src="./Tecmicro-logo.png" alt="Tecmicro" class="footer-tecmicro-logo">
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./dashboard.js"></script>
+</body>
+
+</html>

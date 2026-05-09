@@ -1,0 +1,282 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg:           #0b0f0e;
+  --surface:      #111714;
+  --surface-alt:  #161c1a;
+  --border:       #1e2a28;
+  --border-light: #2a3a37;
+
+  --accent:       #00c9a7;
+  --accent-dim:   rgba(0, 201, 167, 0.12);
+  --accent-glow:  rgba(0, 201, 167, 0.35);
+
+  --text:         #e2f0ec;
+  --text-muted:   #7a9490;
+  --text-dim:     #3d5550;
+
+  --danger:       #ef4444;
+
+  --font-mono:    'Share Tech Mono', monospace;
+  --font:         'Poppins', sans-serif;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font);
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ---- Circuit dot background ---- */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+section {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  width: 100%;
+}
+
+/* ---- Login card ---- */
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  padding: 40px 36px;
+  box-shadow: 0 0 60px rgba(0, 201, 167, 0.06), 0 24px 48px rgba(0,0,0,.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle glow blob top-right */
+.login-card::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  background: var(--accent-dim);
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* ---- Header ---- */
+.login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 0 20px var(--accent-glow);
+  margin-bottom: 16px;
+}
+
+.logo-title {
+  font-family: var(--font-mono);
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--text);
+}
+
+.logo-title .accent {
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent-glow);
+}
+
+.logo-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* ---- Divider ---- */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+  margin-bottom: 28px;
+}
+
+/* ---- Form ---- */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color .2s;
+}
+
+.input-wrapper:focus-within .input-icon {
+  color: var(--accent);
+}
+
+.input-wrapper input {
+  width: 100%;
+  height: 46px;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0 14px 0 40px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.input-wrapper input::placeholder {
+  color: var(--text-dim);
+}
+
+.input-wrapper input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* ---- Submit button ---- */
+.btn-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all .25s;
+}
+
+.btn-login:hover {
+  box-shadow: 0 0 24px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+.btn-login:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ---- Arduino Days logo ---- */
+.arduino-day-logo-wrap {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 16px;
+  display: inline-block;
+  margin-bottom: 18px;
+}
+
+.arduino-day-logo {
+  display: block;
+  height: 52px;
+  width: auto;
+}
+
+/* ---- Sponsor row ---- */
+.sponsor-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.sponsor-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tecmicro-logo-wrap {
+  background: #fff;
+  border-radius: 50%;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tecmicro-logo {
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  display: block;
+}
