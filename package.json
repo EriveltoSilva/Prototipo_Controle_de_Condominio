@@ -40,7 +40,25 @@
     "appId": "com.kilamba.controller",
     "productName": "Kilamba Controller",
     "directories": { "output": "dist" },
-    "files": ["out/**/*"],
-    "win": { "target": "nsis" }
+    "files": ["out/**/*", "package.json"],
+    "asarUnpack": [
+      "**/node_modules/serialport/**",
+      "**/node_modules/@serialport/**",
+      "**/node_modules/bindings/**",
+      "**/node_modules/node-gyp-build/**"
+    ],
+    "npmRebuild": true,
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "zip",  "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }
