@@ -82,7 +82,6 @@ export class SerialManager {
       sl1: fields.SL1 === '1',
       sl2: fields.SL2 === '1',
       sl3: fields.SL3 === '1',
-      sm: parseInt(fields.SM ?? '0', 10),
       fr: fields.FR === '1',
       wl: parseFloat(fields.WL ?? '0'),
       rn: fields.RN === '1',

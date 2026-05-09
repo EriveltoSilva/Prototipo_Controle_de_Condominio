@@ -45,3 +45,13 @@
     @apply bg-border rounded-full;
   }
 }
+
+@keyframes water-rise {
+  0%, 100% { opacity: 0.6; transform: scaleX(1);   }
+  50%       { opacity: 1;   transform: scaleX(0.97); }
+}
+
+@keyframes wave-scroll {
+  from { transform: translateX(0);    }
+  to   { transform: translateX(-50%); }
+}

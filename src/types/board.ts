@@ -7,7 +7,6 @@ export interface BoardData {
   sl1: boolean
   sl2: boolean
   sl3: boolean
-  sm: number
   fr: boolean
   wl: number
   rn: boolean
