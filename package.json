@@ -1,0 +1,46 @@
+{
+  "name": "kilamba-controller",
+  "version": "1.0.0",
+  "description": "Desktop control panel for Centralidade do Kilamba",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-vite build && electron-builder",
+    "rebuild": "electron-rebuild -f -w serialport"
+  },
+  "dependencies": {
+    "@electron-toolkit/utils": "^3.0.0",
+    "@serialport/parser-readline": "^12.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.400.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "serialport": "^12.0.0",
+    "tailwind-merge": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "electron": "^31.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.1"
+  },
+  "build": {
+    "appId": "com.kilamba.controller",
+    "productName": "Kilamba Controller",
+    "directories": { "output": "dist" },
+    "files": ["out/**/*"],
+    "win": { "target": "nsis" }
+  }
+}
