@@ -34,6 +34,7 @@
 // ============================================================
 #include <Wire.h>
 #include <Servo.h>
+#include <NewPing.h>
 #include <LiquidCrystal_I2C.h>
 
 // ============================================================
@@ -73,15 +74,13 @@
 #define WATER_ECHO_PIN 9
 #define FIRE_SENSOR_PIN 10
 #define RAIN_SENSOR_PIN 11
-#define SMOKE_SENSOR_PIN A0
 
 // ============================================================
 // LIMIARES DOS SENSORES
 // ============================================================
-#define SMOKE_ALERT_THRESHOLD 400
 #define WATER_TANK_HEIGHT_CM 30.0f
 #define WATER_LOW_CM 5.0f    // distância pequena → nível alto (quase cheio)
-#define WATER_HIGH_CM 25.0f  // distância grande  → nível baixo (quase vazio)
+#define WATER_HIGH_CM 30.0f  // distância grande  → nível baixo (quase vazio)
 #define ULTRASONIC_TIMEOUT_US 30000UL
 
 // ============================================================
@@ -154,11 +153,6 @@ typedef struct {
   float tankHeightCm;
 } WaterLevelSensor;
 
-typedef struct {
-  uint8_t pin;
-  int rawValue;
-  bool alert;
-} SmokeSensor;
 
 typedef struct {
   uint8_t pin;
@@ -190,10 +184,10 @@ Servo servoBIn;
 Servo servoBOut;
 
 WaterLevelSensor waterLevel = { WATER_TRIG_PIN, WATER_ECHO_PIN, 0.0f, WATER_TANK_HEIGHT_CM };
-SmokeSensor smoke = { SMOKE_SENSOR_PIN, 0, false };
 FireSensor fire = { FIRE_SENSOR_PIN, false };
 RainSensor rain = { RAIN_SENSOR_PIN, false };
 
+NewPing sonar(WATER_TRIG_PIN, WATER_ECHO_PIN, 500); // NewPing setup of pins and maximum distance.
 LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 
 static uint32_t lastDataSend = 0;
@@ -231,7 +225,6 @@ const char *gateStateName(GateState s);
 
 float measureDistance(uint8_t trigPin, uint8_t echoPin);
 void readWaterLevel(WaterLevelSensor *ws);
-void readSmoke(SmokeSensor *ss);
 void readFire(FireSensor *fs);
 void readRain(RainSensor *rs);
 const char *waterStatusName(float dist);
@@ -306,8 +299,7 @@ void loop() {
     lastDataSend = millis();
     readFire(&fire);
     readRain(&rain);
-    // readWaterLevel(&waterLevel);
-    // readSmoke(&smoke);
+    readWaterLevel(&waterLevel);
     sendDataPacket();
     digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
   }
@@ -453,25 +445,20 @@ const char *gateStateName(GateState s) {
 // ============================================================
 // SENSORES
 // ============================================================
-
-float measureDistance(uint8_t trigPin, uint8_t echoPin) {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  unsigned long dur = pulseIn(echoPin, HIGH, ULTRASONIC_TIMEOUT_US);
-  return dur * 0.01715f;  // (us * 343 m/s) / 2 → cm
-}
+// float measureDistance(uint8_t trigPin, uint8_t echoPin) {
+//   digitalWrite(trigPin, LOW);
+//   delayMicroseconds(2);
+//   digitalWrite(trigPin, HIGH);
+//   delayMicroseconds(10);
+//   digitalWrite(trigPin, LOW);
+//   unsigned long dur = pulseIn(echoPin, HIGH, ULTRASONIC_TIMEOUT_US);
+//   return dur * 0.01715f;  // (us * 343 m/s) / 2 → cm
+// }
 
 void readWaterLevel(WaterLevelSensor *ws) {
-  ws->distanceCm = measureDistance(ws->trigPin, ws->echoPin);
+  ws->distanceCm = sonar.ping_cm();
 }
 
-void readSmoke(SmokeSensor *ss) {
-  ss->rawValue = analogRead(ss->pin);
-  ss->alert = (ss->rawValue >= SMOKE_ALERT_THRESHOLD);
-}
 
 void readFire(FireSensor *fs) {
   fs->detected = (bool)!digitalRead(fs->pin); // LOW activo na maioria dos módulos
@@ -504,12 +491,10 @@ void sendDataPacket() {
   Serial.print(sl2.isOn ? 1 : 0);
   Serial.print(F(",SL3:"));
   Serial.print(sl3.isOn ? 1 : 0);
-  Serial.print(F(",SM:"));
-  Serial.print(smoke.rawValue);
   Serial.print(F(",FR:"));
   Serial.print(fire.detected ? 1 : 0);
   Serial.print(F(",WL:"));
-  Serial.print(waterLevel.distanceCm, 1);
+  Serial.print(waterLevel.distanceCm, 2);
   Serial.print(F(",RN:"));
   Serial.print(rain.raining ? 1 : 0);
   Serial.print(F(",GAI:"));
@@ -621,21 +606,16 @@ void lcdShowTraffic() {
 }
 
 void lcdShowSensors() {
-  // Linha 0: Fumo
-  lcd.setCursor(0, 0);
-  lcd.print(F("FUM:"));
-  lcd.print(smoke.rawValue);
-  lcd.print(smoke.alert ? F(" ALERTA") : F(" OK    "));
-  // Linha 1: Chuva
-  lcd.setCursor(0, 1);
+  // Linha 0: Chuva
+  lcd.setCursor(0, 0); 
   lcd.print(F("CHUVA:"));
   lcd.print(rain.raining ? F("SIM     ") : F("NAO     "));
-  // Linha 2: Fogo
-  lcd.setCursor(-4, 2);
+  // Linha 1: Fogo
+  lcd.setCursor(0, 1);
   lcd.print(F("FOGO:"));
   lcd.print(fire.detected ? F("DETECTADO") : F("SEGURO   "));
-  // Linha 3: Nível de água  (max "AGUA:99.9cm BAIX" = 16 chars)
-  lcd.setCursor(-4, 3);
+  // Linha 2: Nível de água  (max "AGUA:99.9cm BAIX" = 16 chars)
+  lcd.setCursor(-4, 2);
   lcd.print(F("AGUA:"));
   if (waterLevel.distanceCm > 0.0f) {
     lcd.print(waterLevel.distanceCm, 1);
