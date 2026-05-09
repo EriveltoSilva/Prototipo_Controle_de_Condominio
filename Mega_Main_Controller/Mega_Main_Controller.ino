@@ -97,7 +97,7 @@
 // PROTOCOLO SERIAL
 // ============================================================
 #define BAUD_RATE 9600
-#define DATA_SEND_MS 5000UL
+#define DATA_SEND_MS 2500UL
 #define PACKET_START '$'
 #define PACKET_END '#'
 #define CMD_LENGTH 3
@@ -199,7 +199,6 @@ LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 static uint32_t lastDataSend = 0;
 static uint32_t lastLcdChange = 0;
 static uint8_t lcdPage = 0;
-static bool statusLed = false;
 
 static char cmdBuf[CMD_LENGTH + 1];
 static uint8_t cmdIdx = 0;
@@ -296,7 +295,6 @@ void setup() {
 
 void loop() {
   updateTrafficLights();
-
   handleSerialCommand();
 
   // checkAutoClose(&servoAIn,  &gateA.entranceState, &gateA.entranceTimer);
@@ -304,16 +302,15 @@ void loop() {
   // checkAutoClose(&servoBIn,  &gateB.entranceState, &gateB.entranceTimer);
   // checkAutoClose(&servoBOut, &gateB.exitState,     &gateB.exitTimer);
 
-  // if ((uint32_t)(millis() - lastDataSend) >= DATA_SEND_MS) {
-  //     lastDataSend = millis();
-  //     readWaterLevel(&waterLevel);
-  //     readSmoke(&smoke);
-  //     readFire(&fire);
-  //     readRain(&rain);
-  //     sendDataPacket();
-  //     statusLed = !statusLed;
-  //     digitalWrite(STATUS_LED_PIN, statusLed);
-  // }
+  if ((uint32_t)(millis() - lastDataSend) >= DATA_SEND_MS) {
+    lastDataSend = millis();
+    readFire(&fire);
+    // readWaterLevel(&waterLevel);
+    // readSmoke(&smoke);
+    // readRain(&rain);
+    sendDataPacket();
+    digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
+  }
 
   if ((uint32_t)(millis() - lastLcdChange) >= LCD_PAGE_MS) {
     lastLcdChange = millis();
@@ -477,7 +474,7 @@ void readSmoke(SmokeSensor *ss) {
 }
 
 void readFire(FireSensor *fs) {
-  fs->detected = (bool)digitalRead(fs->pin);
+  fs->detected = (bool)!digitalRead(fs->pin);
 }
 
 void readRain(RainSensor *rs) {
