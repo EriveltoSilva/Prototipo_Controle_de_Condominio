@@ -1,211 +1,112 @@
-const DEEPSEEK_API_KEY = "sk-1e35f2add99443ee8f1c1c1318aa6e3d";
-const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
-const DEEPSEEK_MODEL = "deepseek-chat";
-const MAX_HISTORY = 10;
-
-const SYSTEM_PROMPT_BASE =
-  "You are a smart assistant like Alexa built into an ESP32 device. " +
-  "You control hardware and answer questions naturally. " +
-  "If the user wants to turn ON the LED, respond ONLY with the exact text: LED_ON. " +
-  "If the user wants to turn OFF the LED, respond ONLY with the exact text: LED_OFF. " +
-  "You also have access to real-time sensor data from the environment. " +
-  "If the user asks about temperature, humidity, weather conditions, or if it is hot/cold, " +
-  "use the sensor data provided below to answer naturally. " +
-  "Never invent sensor values. " +
-  "For any other question, answer naturally and concisely. " +
-  "Never explain what LED_ON or LED_OFF mean.";
+const POLL_INTERVAL = 2000;
 
 // ---- DOM references ----
-const temperatureSensor = document.getElementById("temperatureSensor");
-const humiditySensor = document.getElementById("humiditySensor");
-const tempBar = document.getElementById("tempBar");
-const humidBar = document.getElementById("humidBar");
-const ledBulb = document.getElementById("ledBulb");
-const ledGlow = document.getElementById("ledGlow");
-const ledBadge = document.getElementById("ledBadge");
-const ledStateText = document.getElementById("ledStateText");
-const btnLed = document.getElementById("btnLed");
-const chatMessages = document.getElementById("chatMessages");
-const chatInput = document.getElementById("chatInput");
-const btnSend = document.getElementById("btnSend");
-const aiStatus = document.getElementById("aiStatus");
+const temperatureSensor = document.getElementById('temperatureSensor');
+const humiditySensor    = document.getElementById('humiditySensor');
+const tempBar           = document.getElementById('tempBar');
+const humidBar          = document.getElementById('humidBar');
 
-let currentLedState = false;
-let currentTemp     = 0;
-let currentHumid    = 0;
-let messageHistory  = [];  // rolling buffer of {role, content} pairs
+const salaBulb      = document.getElementById('salaBulb');
+const salaGlow      = document.getElementById('salaGlow');
+const salaBadge     = document.getElementById('salaBadge');
+const salaStateText = document.getElementById('salaStateText');
+const btnSala       = document.getElementById('btnSala');
 
-function buildSystemPrompt() {
-  return (
-    SYSTEM_PROMPT_BASE +
-    "\n\nCurrent sensor readings:" +
-    "\n- Temperature: " +
-    currentTemp.toFixed(2) +
-    " °C" +
-    "\n- Humidity: " +
-    currentHumid.toFixed(2) +
-    " %" +
-    "\n- LED state: " +
-    (currentLedState ? "ON" : "OFF")
-  );
-}
+const quartoBulb      = document.getElementById('quartoBulb');
+const quartoGlow      = document.getElementById('quartoGlow');
+const quartoBadge     = document.getElementById('quartoBadge');
+const quartoStateText = document.getElementById('quartoStateText');
+const btnQuarto       = document.getElementById('btnQuarto');
 
-// ======================================================
+const statusDot   = document.getElementById('statusDot');
+const statusLabel = document.getElementById('statusLabel');
+const footerIp    = document.getElementById('footerIp');
+
+let ledSala   = false;
+let ledQuarto = false;
+
+// ============================================================
 // Data polling
-// ======================================================
-window.addEventListener("load", () => {
+// ============================================================
+window.addEventListener('load', () => {
   receiveData();
-  setInterval(receiveData, 2000);
+  setInterval(receiveData, POLL_INTERVAL);
 });
 
 function receiveData() {
-  fetch("/dados")
-    .then((resp) => resp.json())
-    .then((data) => {
-      currentTemp = data.temp;
-      currentHumid = data.humidity;
+  fetch('/dados')
+    .then(resp => resp.json())
+    .then(data => {
+      setOnline(true);
+
       temperatureSensor.textContent = data.temp.toFixed(1);
-      humiditySensor.textContent = data.humidity.toFixed(1);
+      humiditySensor.textContent    = data.humidity.toFixed(1);
 
-      // progress bars: temp 0–50°C, humidity 0–100%
-      tempBar.style.width = Math.min(Math.max((data.temp / 50) * 100, 0), 100) + "%";
-      humidBar.style.width = Math.min(Math.max(data.humidity, 0), 100) + "%";
+      tempBar.style.width  = clamp((data.temp / 50) * 100) + '%';
+      humidBar.style.width = clamp(data.humidity) + '%';
 
-      currentLedState = data.ledState;
-      updateLedUI();
+      ledSala   = data.ledSala;
+      ledQuarto = data.ledQuarto;
+
+      updateLedUI('sala',   ledSala);
+      updateLedUI('quarto', ledQuarto);
     })
-    .catch((err) => console.error("Erro ao buscar dados:", err));
+    .catch(() => setOnline(false));
 }
 
-function updateLedUI() {
-  if (currentLedState) {
-    btnLed.textContent = "&#9646; DESLIGAR";
-    btnLed.innerHTML = "&#9646; DESLIGAR";
-    btnLed.className = "btn btn-danger";
-    ledBulb.classList.add("on");
-    ledGlow.classList.add("on");
-    ledBadge.textContent = "ON";
-    ledBadge.className = "card-badge on";
-    ledStateText.textContent = "Ligado";
-    ledStateText.className = "led-state on";
+function clamp(v) { return Math.min(Math.max(v, 0), 100); }
+
+function setOnline(online) {
+  if (online) {
+    statusDot.classList.add('online');
+    statusLabel.textContent = 'Online';
+    footerIp.textContent    = window.location.hostname;
   } else {
-    btnLed.innerHTML = "&#9654; LIGAR";
-    btnLed.className = "btn btn-primary";
-    ledBulb.classList.remove("on");
-    ledGlow.classList.remove("on");
-    ledBadge.textContent = "OFF";
-    ledBadge.className = "card-badge";
-    ledStateText.textContent = "Desligado";
-    ledStateText.className = "led-state";
+    statusDot.classList.remove('online');
+    statusLabel.textContent = 'Sem ligacao';
   }
 }
 
-// ======================================================
-// LED manual control
-// ======================================================
-btnLed.addEventListener("click", () => {
-  const url = currentLedState ? "/led/off" : "/led/on";
-  fetch(url)
-    .then((resp) => resp.json())
-    .then(() => receiveData())
-    .catch((err) => console.error("Erro ao controlar LED:", err));
-});
+// ============================================================
+// LED UI helper
+// ============================================================
+function updateLedUI(room, state) {
+  const bulb      = room === 'sala' ? salaBulb      : quartoBulb;
+  const glow      = room === 'sala' ? salaGlow      : quartoGlow;
+  const badge     = room === 'sala' ? salaBadge     : quartoBadge;
+  const stateText = room === 'sala' ? salaStateText : quartoStateText;
+  const btn       = room === 'sala' ? btnSala       : btnQuarto;
 
-// ======================================================
-// Chat helpers
-// ======================================================
-function addMessage(text, role) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "message " + role;
-
-  const bubble = document.createElement("div");
-  bubble.className = "msg-bubble";
-  bubble.textContent = text;
-
-  wrapper.appendChild(bubble);
-  chatMessages.appendChild(wrapper);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  return wrapper;
-}
-
-function setBusy(busy) {
-  btnSend.disabled = busy;
-  chatInput.disabled = busy;
-  aiStatus.textContent = busy ? "a pensar..." : "pronto para ajudar";
-  aiStatus.className = busy ? "chat-subtitle busy" : "chat-subtitle";
-}
-
-// ======================================================
-// Send message to DeepSeek
-// ======================================================
-btnSend.addEventListener("click", sendMessage);
-
-chatInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
-
-function pushHistory(role, content) {
-  messageHistory.push({ role, content });
-  if (messageHistory.length > MAX_HISTORY) {
-    messageHistory.splice(0, messageHistory.length - MAX_HISTORY);
+  if (state) {
+    bulb.classList.add('on');
+    glow.classList.add('on');
+    badge.textContent    = 'ON';
+    badge.className      = 'card-badge on';
+    stateText.textContent = 'Ligado';
+    stateText.className  = 'led-state on';
+    btn.innerHTML        = '&#9646; DESLIGAR';
+    btn.className        = 'btn btn-danger';
+  } else {
+    bulb.classList.remove('on');
+    glow.classList.remove('on');
+    badge.textContent    = 'OFF';
+    badge.className      = 'card-badge';
+    stateText.textContent = 'Desligado';
+    stateText.className  = 'led-state';
+    btn.innerHTML        = '&#9654; LIGAR';
+    btn.className        = 'btn btn-primary';
   }
 }
 
-function sendMessage() {
-  const text = chatInput.value.trim();
-  if (!text) return;
+// ============================================================
+// LED controls
+// ============================================================
+btnSala.addEventListener('click', () => {
+  const url = ledSala ? '/led/sala/off' : '/led/sala/on';
+  fetch(url).then(() => receiveData()).catch(console.error);
+});
 
-  chatInput.value = "";
-  addMessage(text, "user");
-  pushHistory("user", text);
-
-  const thinking = addMessage("A pensar...", "thinking");
-  setBusy(true);
-
-  fetch(DEEPSEEK_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + DEEPSEEK_API_KEY,
-    },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        ...messageHistory,
-      ],
-      temperature: 0.2,
-      max_tokens: 500,
-    }),
-  })
-    .then((resp) => resp.json())
-    .then((data) => {
-      thinking.remove();
-      setBusy(false);
-
-      const reply = data.choices[0].message.content.trim();
-      pushHistory("assistant", reply);
-
-      if (reply === "LED_ON") {
-        fetch("/led/on")
-          .then(() => receiveData())
-          .catch(console.error);
-        addMessage("LED ligado!", "bot");
-      } else if (reply === "LED_OFF") {
-        fetch("/led/off")
-          .then(() => receiveData())
-          .catch(console.error);
-        addMessage("LED desligado!", "bot");
-      } else {
-        addMessage(reply, "bot");
-      }
-    })
-    .catch((err) => {
-      thinking.remove();
-      setBusy(false);
-      // remove the failed user message from history so it won't confuse future turns
-      if (messageHistory.at(-1)?.role === "user") messageHistory.pop();
-      addMessage("Erro ao contactar a IA. Verifique a sua chave API.", "bot");
-      console.error("DeepSeek error:", err);
-    });
-}
+btnQuarto.addEventListener('click', () => {
+  const url = ledQuarto ? '/led/quarto/off' : '/led/quarto/on';
+  fetch(url).then(() => receiveData()).catch(console.error);
+});
