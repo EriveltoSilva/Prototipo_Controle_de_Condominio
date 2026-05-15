@@ -1,13 +1,20 @@
 /**
  * AUTOR...:  Erivelto Silva
- * PROJECTO:  Casa Inteligente — Controlo Residencial
+ * PROJECTO:  Condomínio Inteligente — Controlo Residencial
  * MCU.....:  ESP32
  * DATA....:  09-05-2026
  *
- * Componentes:
- *   - DHT11       — temperatura e humidade (GPIO 4)
- *   - LED Sala    — luz da sala de estar   (GPIO 2)
- *   - LED Quarto  — luz do quarto          (GPIO 5)
+ * Componentes por apartamento:
+ *   Casa 1 — GPIO  2: Lâmpada (LED)
+ *             GPIO  4: DHT11 (temperatura/humidade)
+ *             GPIO 13: Sensor de Fogo (LOW activo)
+ *             GPIO 15: Ar-Condicionado (cooler)
+ *   Casa 2 — GPIO  5: Lâmpada (LED)
+ *             GPIO 18: Ar-Condicionado (cooler)
+ *             GPIO 19: DHT11 (temperatura/humidade)
+ *   Casa 3 — GPIO 21: Lâmpada (LED)
+ *             GPIO 22: Ar-Condicionado (cooler)
+ *             GPIO 23: DHT11 (temperatura/humidade)
  *
  * Aceder via browser:
  *   http://casainteligente.local   (mDNS)
@@ -28,35 +35,63 @@
 #include <ESPAsyncWebServer.h>
 
 // ============================================================
-// CONFIGURACAO — altere antes de carregar
+// CONFIGURAÇÃO — altere antes de carregar
 // ============================================================
-const char* ssid = "UNITEL NET CASA 2.4GHz_A886";
+const char* ssid     = "UNITEL NET CASA 2.4GHz_A886";
 const char* password = "474frut4mba";
 
 #define LOGIN_USER "admin"
 #define LOGIN_PASS "admin1234"
 
 // ============================================================
-// PINOS
+// PINOS — CASA 1
 // ============================================================
-#define DHTPIN      4
-#define DHTTYPE     DHT11
-#define LED_SALA    2
-#define LED_QUARTO  5
-
-#define DHT_READ_INTERVAL 10000UL
+#define C1_LED_PIN    2
+#define C1_DHT_PIN    4
+#define C1_FIRE_PIN  13
+#define C1_AC_PIN    15
 
 // ============================================================
-// INSTANCIAS
+// PINOS — CASA 2
 // ============================================================
-DHT dht(DHTPIN, DHTTYPE);
+#define C2_LED_PIN    5
+#define C2_AC_PIN    18
+#define C2_DHT_PIN   19
+
+// ============================================================
+// PINOS — CASA 3
+// ============================================================
+#define C3_LED_PIN   21
+#define C3_AC_PIN    22
+#define C3_DHT_PIN   23
+
+#define DHTTYPE            DHT11
+#define DHT_READ_INTERVAL  10000UL
+#define FIRE_READ_INTERVAL  2000UL
+
+// ============================================================
+// INSTÂNCIAS
+// ============================================================
+DHT dht1(C1_DHT_PIN, DHTTYPE);
+DHT dht2(C2_DHT_PIN, DHTTYPE);
+DHT dht3(C3_DHT_PIN, DHTTYPE);
+
 AsyncWebServer server(80);
 
-float temperature    = 0.0f;
-float humidity       = 0.0f;
-bool  ledSalaState   = false;
-bool  ledQuartoState = false;
-unsigned long lastDhtRead = 0;
+// Estado — Casa 1
+float temp1 = 0.0f, humid1 = 0.0f;
+bool  ledCasa1 = false, acCasa1 = false, fireCasa1 = false;
+
+// Estado — Casa 2
+float temp2 = 0.0f, humid2 = 0.0f;
+bool  ledCasa2 = false, acCasa2 = false;
+
+// Estado — Casa 3
+float temp3 = 0.0f, humid3 = 0.0f;
+bool  ledCasa3 = false, acCasa3 = false;
+
+unsigned long lastDhtRead  = 0;
+unsigned long lastFireRead = 0;
 
 // ============================================================
 // Wi-Fi
@@ -75,15 +110,19 @@ void connectWiFi() {
 }
 
 // ============================================================
-// DHT11
+// Sensores
 // ============================================================
-void readSensors() {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-  if (!isnan(h) && !isnan(t)) {
-    humidity    = h;
-    temperature = t;
-  }
+void readDHTs() {
+  float h, t;
+
+  h = dht1.readHumidity();  t = dht1.readTemperature();
+  if (!isnan(h) && !isnan(t)) { humid1 = h; temp1 = t; }
+
+  h = dht2.readHumidity();  t = dht2.readTemperature();
+  if (!isnan(h) && !isnan(t)) { humid2 = h; temp2 = t; }
+
+  h = dht3.readHumidity();  t = dht3.readTemperature();
+  if (!isnan(h) && !isnan(t)) { humid3 = h; temp3 = t; }
 }
 
 // ============================================================
@@ -91,15 +130,13 @@ void readSensors() {
 // ============================================================
 void setupRoutes() {
 
-  // Ficheiros estaticos
+  // Ficheiros estáticos
   server.on("/login.css",     HTTP_GET, [](AsyncWebServerRequest* r) { r->send(SPIFFS, "/login.css",     "text/css");        });
   server.on("/dashboard.css", HTTP_GET, [](AsyncWebServerRequest* r) { r->send(SPIFFS, "/dashboard.css", "text/css");        });
   server.on("/dashboard.js",  HTTP_GET, [](AsyncWebServerRequest* r) { r->send(SPIFFS, "/dashboard.js",  "text/javascript"); });
 
-  // Paginas
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest* r) {
-    r->redirect("/login");
-  });
+  // Páginas
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* r) { r->redirect("/login"); });
   server.on("/login", HTTP_GET, [](AsyncWebServerRequest* r) {
     r->send(SPIFFS, "/login.html", "text/html");
   });
@@ -111,46 +148,78 @@ void setupRoutes() {
   server.on("/getin", HTTP_POST, [](AsyncWebServerRequest* r) {
     String u = r->hasParam("username", true) ? r->getParam("username", true)->value() : "";
     String p = r->hasParam("password", true) ? r->getParam("password", true)->value() : "";
-    if (u == LOGIN_USER && p == LOGIN_PASS) {
-      r->redirect("/dashboard.html");
-    } else {
-      r->redirect("/login");
-    }
+    if (u == LOGIN_USER && p == LOGIN_PASS) r->redirect("/dashboard.html");
+    else r->redirect("/login");
   });
 
-  // Dados dos sensores + estado dos LEDs
+  // ── Dados (JSON com os 3 apartamentos) ──
   server.on("/dados", HTTP_GET, [](AsyncWebServerRequest* r) {
-    String json = "{";
-    json += "\"temp\":"      + String(temperature, 1) + ",";
-    json += "\"humidity\":"  + String(humidity, 1)    + ",";
-    json += "\"ledSala\":"   + String(ledSalaState   ? "true" : "false") + ",";
-    json += "\"ledQuarto\":" + String(ledQuartoState ? "true" : "false");
-    json += "}";
-    r->send(200, "application/json", json);
+    String j = "{";
+
+    j += "\"casa1\":{";
+    j += "\"temp\":"  + String(temp1,  1) + ",";
+    j += "\"humid\":" + String(humid1, 1) + ",";
+    j += "\"led\":"   + String(ledCasa1  ? "true" : "false") + ",";
+    j += "\"ac\":"    + String(acCasa1   ? "true" : "false") + ",";
+    j += "\"fire\":"  + String(fireCasa1 ? "true" : "false");
+    j += "},";
+
+    j += "\"casa2\":{";
+    j += "\"temp\":"  + String(temp2,  1) + ",";
+    j += "\"humid\":" + String(humid2, 1) + ",";
+    j += "\"led\":"   + String(ledCasa2 ? "true" : "false") + ",";
+    j += "\"ac\":"    + String(acCasa2  ? "true" : "false");
+    j += "},";
+
+    j += "\"casa3\":{";
+    j += "\"temp\":"  + String(temp3,  1) + ",";
+    j += "\"humid\":" + String(humid3, 1) + ",";
+    j += "\"led\":"   + String(ledCasa3 ? "true" : "false") + ",";
+    j += "\"ac\":"    + String(acCasa3  ? "true" : "false");
+    j += "}";
+
+    j += "}";
+    r->send(200, "application/json", j);
   });
 
-  // LED Sala
-  server.on("/led/sala/on", HTTP_GET, [](AsyncWebServerRequest* r) {
-    ledSalaState = true;
-    digitalWrite(LED_SALA, HIGH);
-    r->send(200, "application/json", "{\"ok\":true}");
+  // ── Lâmpadas ──
+  server.on("/led/casa1/on",  HTTP_GET, [](AsyncWebServerRequest* r) {
+    ledCasa1 = true;  digitalWrite(C1_LED_PIN, HIGH); r->send(200, "application/json", "{\"ok\":true}");
   });
-  server.on("/led/sala/off", HTTP_GET, [](AsyncWebServerRequest* r) {
-    ledSalaState = false;
-    digitalWrite(LED_SALA, LOW);
-    r->send(200, "application/json", "{\"ok\":true}");
+  server.on("/led/casa1/off", HTTP_GET, [](AsyncWebServerRequest* r) {
+    ledCasa1 = false; digitalWrite(C1_LED_PIN, LOW);  r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/led/casa2/on",  HTTP_GET, [](AsyncWebServerRequest* r) {
+    ledCasa2 = true;  digitalWrite(C2_LED_PIN, HIGH); r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/led/casa2/off", HTTP_GET, [](AsyncWebServerRequest* r) {
+    ledCasa2 = false; digitalWrite(C2_LED_PIN, LOW);  r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/led/casa3/on",  HTTP_GET, [](AsyncWebServerRequest* r) {
+    ledCasa3 = true;  digitalWrite(C3_LED_PIN, HIGH); r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/led/casa3/off", HTTP_GET, [](AsyncWebServerRequest* r) {
+    ledCasa3 = false; digitalWrite(C3_LED_PIN, LOW);  r->send(200, "application/json", "{\"ok\":true}");
   });
 
-  // LED Quarto
-  server.on("/led/quarto/on", HTTP_GET, [](AsyncWebServerRequest* r) {
-    ledQuartoState = true;
-    digitalWrite(LED_QUARTO, HIGH);
-    r->send(200, "application/json", "{\"ok\":true}");
+  // ── Ar-Condicionado ──
+  server.on("/ac/casa1/on",  HTTP_GET, [](AsyncWebServerRequest* r) {
+    acCasa1 = true;  digitalWrite(C1_AC_PIN, HIGH); r->send(200, "application/json", "{\"ok\":true}");
   });
-  server.on("/led/quarto/off", HTTP_GET, [](AsyncWebServerRequest* r) {
-    ledQuartoState = false;
-    digitalWrite(LED_QUARTO, LOW);
-    r->send(200, "application/json", "{\"ok\":true}");
+  server.on("/ac/casa1/off", HTTP_GET, [](AsyncWebServerRequest* r) {
+    acCasa1 = false; digitalWrite(C1_AC_PIN, LOW);  r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/ac/casa2/on",  HTTP_GET, [](AsyncWebServerRequest* r) {
+    acCasa2 = true;  digitalWrite(C2_AC_PIN, HIGH); r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/ac/casa2/off", HTTP_GET, [](AsyncWebServerRequest* r) {
+    acCasa2 = false; digitalWrite(C2_AC_PIN, LOW);  r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/ac/casa3/on",  HTTP_GET, [](AsyncWebServerRequest* r) {
+    acCasa3 = true;  digitalWrite(C3_AC_PIN, HIGH); r->send(200, "application/json", "{\"ok\":true}");
+  });
+  server.on("/ac/casa3/off", HTTP_GET, [](AsyncWebServerRequest* r) {
+    acCasa3 = false; digitalWrite(C3_AC_PIN, LOW);  r->send(200, "application/json", "{\"ok\":true}");
   });
 
   server.onNotFound([](AsyncWebServerRequest* r) {
@@ -166,11 +235,21 @@ void setupRoutes() {
 void setup() {
   Serial.begin(115200);
 
-  pinMode(LED_SALA,   OUTPUT); digitalWrite(LED_SALA,   LOW);
-  pinMode(LED_QUARTO, OUTPUT); digitalWrite(LED_QUARTO, LOW);
+  // Saídas
+  pinMode(C1_LED_PIN, OUTPUT); digitalWrite(C1_LED_PIN, LOW);
+  pinMode(C1_AC_PIN,  OUTPUT); digitalWrite(C1_AC_PIN,  LOW);
+  pinMode(C2_LED_PIN, OUTPUT); digitalWrite(C2_LED_PIN, LOW);
+  pinMode(C2_AC_PIN,  OUTPUT); digitalWrite(C2_AC_PIN,  LOW);
+  pinMode(C3_LED_PIN, OUTPUT); digitalWrite(C3_LED_PIN, LOW);
+  pinMode(C3_AC_PIN,  OUTPUT); digitalWrite(C3_AC_PIN,  LOW);
 
-  dht.begin();
-  readSensors();
+  // Sensor de fogo (LOW activo — INPUT_PULLUP)
+  pinMode(C1_FIRE_PIN, INPUT_PULLUP);
+
+  dht1.begin();
+  dht2.begin();
+  dht3.begin();
+  readDHTs();
 
   connectWiFi();
 
@@ -193,8 +272,15 @@ void setup() {
 // Loop
 // ============================================================
 void loop() {
-  if ((unsigned long)(millis() - lastDhtRead) >= DHT_READ_INTERVAL) {
-    lastDhtRead = millis();
-    readSensors();
+  unsigned long now = millis();
+
+  if ((unsigned long)(now - lastFireRead) >= FIRE_READ_INTERVAL) {
+    lastFireRead = now;
+    fireCasa1 = !digitalRead(C1_FIRE_PIN); // LOW activo
+  }
+
+  if ((unsigned long)(now - lastDhtRead) >= DHT_READ_INTERVAL) {
+    lastDhtRead = now;
+    readDHTs();
   }
 }

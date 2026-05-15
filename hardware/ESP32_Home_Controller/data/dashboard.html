@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Casa Inteligente | Dashboard</title>
+  <title>Condomínio Smart | Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <link href="./dashboard.css" rel="stylesheet">
@@ -16,8 +16,8 @@
   <header>
     <nav class="navbar">
       <div class="nav-brand">
-        <span class="brand-name">CASA<span class="accent"> SMART</span></span>
-        <span class="brand-sub">ESP32 &mdash; Controlo Residencial</span>
+        <span class="brand-name">COND<span class="accent">SMART</span></span>
+        <span class="brand-sub">ESP32 &mdash; Controlo de Condomínio</span>
       </div>
       <div class="nav-right">
         <span class="status-dot" id="statusDot"></span>
@@ -30,103 +30,337 @@
   <main>
     <div class="layout">
 
-      <!-- Sensors row -->
-      <div class="section-title">
-        <span class="section-line"></span>
-        <span>Ambiente</span>
-        <span class="section-line"></span>
-      </div>
-
-      <div class="sensors-grid">
-
-        <!-- Temperature -->
-        <div class="card" id="cardTemp">
-          <div class="card-glow"></div>
-          <div class="card-header-row">
-            <span class="card-label">TEMPERATURA</span>
-            <span class="card-badge">DHT11</span>
+      <!-- Building Banner -->
+      <div class="building-banner">
+        <div class="building-banner-left">
+          <span class="building-tag">EDIFÍCIO RESIDENCIAL</span>
+          <span class="building-title">Condomínio Smart</span>
+          <span class="building-sub">3 Apartamentos &mdash; Sistema de Controlo Integrado</span>
+        </div>
+        <div class="building-stats">
+          <div class="stat-item">
+            <span class="stat-val" id="statDevices">0</span>
+            <span class="stat-lbl">Dispositivos ON</span>
           </div>
-          <div class="card-value-row">
-            <span class="card-icon temp-icon">&#9651;</span>
-            <span class="card-value mono" id="temperatureSensor">--.-</span>
-            <span class="card-unit">°C</span>
-          </div>
-          <div class="card-bar">
-            <div class="card-bar-fill temp-bar" id="tempBar"></div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-val" id="statFire">OK</span>
+            <span class="stat-lbl">Incêndio</span>
           </div>
         </div>
-
-        <!-- Humidity -->
-        <div class="card" id="cardHumid">
-          <div class="card-glow card-glow-blue"></div>
-          <div class="card-header-row">
-            <span class="card-label">HUMIDADE</span>
-            <span class="card-badge">DHT11</span>
-          </div>
-          <div class="card-value-row">
-            <span class="card-icon humid-icon">&#9652;</span>
-            <span class="card-value mono" id="humiditySensor">--.-</span>
-            <span class="card-unit">%</span>
-          </div>
-          <div class="card-bar">
-            <div class="card-bar-fill humid-bar" id="humidBar"></div>
-          </div>
-        </div>
-
       </div>
 
-      <!-- Lights row -->
-      <div class="section-title">
-        <span class="section-line"></span>
-        <span>Iluminação</span>
-        <span class="section-line"></span>
-      </div>
-
-      <div class="lights-grid">
-
-        <!-- Living Room LED -->
-        <div class="card card-led" id="cardSala">
-          <div class="card-glow card-glow-led" id="salaGlow"></div>
-          <div class="card-header-row">
-            <span class="card-label">SALA</span>
-            <span class="card-badge" id="salaBadge">OFF</span>
-          </div>
-          <div class="led-visual-row">
-            <div class="led-bulb" id="salaBulb">
-              <div class="led-core"></div>
-              <div class="led-ring"></div>
-            </div>
-            <div class="led-info">
-              <span class="led-state" id="salaStateText">Desligado</span>
-              <span class="led-pin">Sala de Estar</span>
+      <!-- ══════════════════════════════════════
+           APARTAMENTO 1  (aberto por defeito)
+      ══════════════════════════════════════ -->
+      <div class="house-group" id="group-casa1">
+        <button class="house-header" id="hdr-casa1" onclick="toggleHouse('casa1')">
+          <div class="house-header-left">
+            <span class="house-num">01</span>
+            <div class="house-title-block">
+              <span class="house-name">APARTAMENTO 1</span>
+              <span class="house-sub">Piso 1 &mdash; Sala + Quarto</span>
             </div>
           </div>
-          <button id="btnSala" class="btn btn-primary">&#9654; LIGAR</button>
+          <div class="house-header-right">
+            <span class="house-badge" id="badge-casa1">Inactivo</span>
+            <span class="house-chevron" id="chevron-casa1">&#9650;</span>
+          </div>
+        </button>
+
+        <div class="house-body open" id="body-casa1">
+          <div class="house-body-inner">
+
+            <div class="sub-title">Ambiente</div>
+            <div class="grid-3">
+
+              <!-- Temperatura -->
+              <div class="card">
+                <div class="card-glow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">TEMPERATURA</span>
+                  <span class="card-badge">DHT11</span>
+                </div>
+                <div class="card-value-row">
+                  <span class="card-icon temp-icon">&#9651;</span>
+                  <span class="card-value mono" id="c1-temp">--.-</span>
+                  <span class="card-unit">°C</span>
+                </div>
+                <div class="card-bar"><div class="card-bar-fill temp-bar" id="c1-tempBar"></div></div>
+              </div>
+
+              <!-- Humidade -->
+              <div class="card">
+                <div class="card-glow card-glow-blue"></div>
+                <div class="card-header-row">
+                  <span class="card-label">HUMIDADE</span>
+                  <span class="card-badge">DHT11</span>
+                </div>
+                <div class="card-value-row">
+                  <span class="card-icon humid-icon">&#9652;</span>
+                  <span class="card-value mono" id="c1-humid">--.-</span>
+                  <span class="card-unit">%</span>
+                </div>
+                <div class="card-bar"><div class="card-bar-fill humid-bar" id="c1-humidBar"></div></div>
+              </div>
+
+              <!-- Sensor de Fogo (exclusivo Aparto. 1) -->
+              <div class="card" id="c1-fireCard">
+                <div class="card-glow card-glow-fire" id="c1-fireGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">SENSOR FOGO</span>
+                  <span class="card-badge" id="c1-fireBadge">---</span>
+                </div>
+                <div class="fire-row">
+                  <span class="fire-icon" id="c1-fireIcon">&#128293;</span>
+                  <div class="led-info">
+                    <span class="fire-state" id="c1-fireState">A verificar...</span>
+                    <span class="led-pin">Detector Incêndio</span>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /grid-3 -->
+
+            <div class="sub-title">Dispositivos</div>
+            <div class="grid-2">
+
+              <!-- Lâmpada -->
+              <div class="card card-led">
+                <div class="card-glow card-glow-led" id="c1-ledGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">LÂMPADA</span>
+                  <span class="card-badge" id="c1-ledBadge">OFF</span>
+                </div>
+                <div class="led-visual-row">
+                  <div class="led-bulb" id="c1-ledBulb">
+                    <div class="led-core"></div>
+                    <div class="led-ring"></div>
+                  </div>
+                  <div class="led-info">
+                    <span class="led-state" id="c1-ledState">Desligado</span>
+                    <span class="led-pin">Sala de Estar</span>
+                  </div>
+                </div>
+                <button id="btn-c1-led" class="btn btn-primary" onclick="toggleLed(1)">&#9654; LIGAR</button>
+              </div>
+
+              <!-- Ar-Condicionado -->
+              <div class="card card-ac">
+                <div class="card-glow card-glow-ac" id="c1-acGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">AR-CONDICIONADO</span>
+                  <span class="card-badge ac-badge" id="c1-acBadge">OFF</span>
+                </div>
+                <div class="led-visual-row">
+                  <div class="ac-bulb" id="c1-acBulb">
+                    <div class="ac-core"></div>
+                    <div class="ac-ring"></div>
+                  </div>
+                  <div class="led-info">
+                    <span class="led-state" id="c1-acState">Desligado</span>
+                    <span class="led-pin">Cooler / Ventoinha</span>
+                  </div>
+                </div>
+                <button id="btn-c1-ac" class="btn btn-ac" onclick="toggleAc(1)">&#9654; LIGAR</button>
+              </div>
+
+            </div><!-- /grid-2 -->
+          </div>
         </div>
+      </div><!-- /casa1 -->
 
-        <!-- Bedroom LED -->
-        <div class="card card-led" id="cardQuarto">
-          <div class="card-glow card-glow-led" id="quartoGlow"></div>
-          <div class="card-header-row">
-            <span class="card-label">QUARTO</span>
-            <span class="card-badge" id="quartoBadge">OFF</span>
-          </div>
-          <div class="led-visual-row">
-            <div class="led-bulb" id="quartoBulb">
-              <div class="led-core"></div>
-              <div class="led-ring"></div>
-            </div>
-            <div class="led-info">
-              <span class="led-state" id="quartoStateText">Desligado</span>
-              <span class="led-pin">Quarto Principal</span>
+      <!-- ══════════════════════════════════════
+           APARTAMENTO 2
+      ══════════════════════════════════════ -->
+      <div class="house-group" id="group-casa2">
+        <button class="house-header" id="hdr-casa2" onclick="toggleHouse('casa2')">
+          <div class="house-header-left">
+            <span class="house-num">02</span>
+            <div class="house-title-block">
+              <span class="house-name">APARTAMENTO 2</span>
+              <span class="house-sub">Piso 1 &mdash; Sala + Quarto</span>
             </div>
           </div>
-          <button id="btnQuarto" class="btn btn-primary">&#9654; LIGAR</button>
+          <div class="house-header-right">
+            <span class="house-badge" id="badge-casa2">Inactivo</span>
+            <span class="house-chevron" id="chevron-casa2">&#9660;</span>
+          </div>
+        </button>
+
+        <div class="house-body" id="body-casa2">
+          <div class="house-body-inner">
+
+            <div class="sub-title">Ambiente</div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-glow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">TEMPERATURA</span>
+                  <span class="card-badge">DHT11</span>
+                </div>
+                <div class="card-value-row">
+                  <span class="card-icon temp-icon">&#9651;</span>
+                  <span class="card-value mono" id="c2-temp">--.-</span>
+                  <span class="card-unit">°C</span>
+                </div>
+                <div class="card-bar"><div class="card-bar-fill temp-bar" id="c2-tempBar"></div></div>
+              </div>
+              <div class="card">
+                <div class="card-glow card-glow-blue"></div>
+                <div class="card-header-row">
+                  <span class="card-label">HUMIDADE</span>
+                  <span class="card-badge">DHT11</span>
+                </div>
+                <div class="card-value-row">
+                  <span class="card-icon humid-icon">&#9652;</span>
+                  <span class="card-value mono" id="c2-humid">--.-</span>
+                  <span class="card-unit">%</span>
+                </div>
+                <div class="card-bar"><div class="card-bar-fill humid-bar" id="c2-humidBar"></div></div>
+              </div>
+            </div>
+
+            <div class="sub-title">Dispositivos</div>
+            <div class="grid-2">
+              <div class="card card-led">
+                <div class="card-glow card-glow-led" id="c2-ledGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">LÂMPADA</span>
+                  <span class="card-badge" id="c2-ledBadge">OFF</span>
+                </div>
+                <div class="led-visual-row">
+                  <div class="led-bulb" id="c2-ledBulb">
+                    <div class="led-core"></div>
+                    <div class="led-ring"></div>
+                  </div>
+                  <div class="led-info">
+                    <span class="led-state" id="c2-ledState">Desligado</span>
+                    <span class="led-pin">Sala de Estar</span>
+                  </div>
+                </div>
+                <button id="btn-c2-led" class="btn btn-primary" onclick="toggleLed(2)">&#9654; LIGAR</button>
+              </div>
+              <div class="card card-ac">
+                <div class="card-glow card-glow-ac" id="c2-acGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">AR-CONDICIONADO</span>
+                  <span class="card-badge ac-badge" id="c2-acBadge">OFF</span>
+                </div>
+                <div class="led-visual-row">
+                  <div class="ac-bulb" id="c2-acBulb">
+                    <div class="ac-core"></div>
+                    <div class="ac-ring"></div>
+                  </div>
+                  <div class="led-info">
+                    <span class="led-state" id="c2-acState">Desligado</span>
+                    <span class="led-pin">Cooler / Ventoinha</span>
+                  </div>
+                </div>
+                <button id="btn-c2-ac" class="btn btn-ac" onclick="toggleAc(2)">&#9654; LIGAR</button>
+              </div>
+            </div>
+
+          </div>
         </div>
+      </div><!-- /casa2 -->
 
-      </div>
+      <!-- ══════════════════════════════════════
+           APARTAMENTO 3
+      ══════════════════════════════════════ -->
+      <div class="house-group" id="group-casa3">
+        <button class="house-header" id="hdr-casa3" onclick="toggleHouse('casa3')">
+          <div class="house-header-left">
+            <span class="house-num">03</span>
+            <div class="house-title-block">
+              <span class="house-name">APARTAMENTO 3</span>
+              <span class="house-sub">Piso 2 &mdash; Sala + Quarto</span>
+            </div>
+          </div>
+          <div class="house-header-right">
+            <span class="house-badge" id="badge-casa3">Inactivo</span>
+            <span class="house-chevron" id="chevron-casa3">&#9660;</span>
+          </div>
+        </button>
 
-    </div>
+        <div class="house-body" id="body-casa3">
+          <div class="house-body-inner">
+
+            <div class="sub-title">Ambiente</div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-glow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">TEMPERATURA</span>
+                  <span class="card-badge">DHT11</span>
+                </div>
+                <div class="card-value-row">
+                  <span class="card-icon temp-icon">&#9651;</span>
+                  <span class="card-value mono" id="c3-temp">--.-</span>
+                  <span class="card-unit">°C</span>
+                </div>
+                <div class="card-bar"><div class="card-bar-fill temp-bar" id="c3-tempBar"></div></div>
+              </div>
+              <div class="card">
+                <div class="card-glow card-glow-blue"></div>
+                <div class="card-header-row">
+                  <span class="card-label">HUMIDADE</span>
+                  <span class="card-badge">DHT11</span>
+                </div>
+                <div class="card-value-row">
+                  <span class="card-icon humid-icon">&#9652;</span>
+                  <span class="card-value mono" id="c3-humid">--.-</span>
+                  <span class="card-unit">%</span>
+                </div>
+                <div class="card-bar"><div class="card-bar-fill humid-bar" id="c3-humidBar"></div></div>
+              </div>
+            </div>
+
+            <div class="sub-title">Dispositivos</div>
+            <div class="grid-2">
+              <div class="card card-led">
+                <div class="card-glow card-glow-led" id="c3-ledGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">LÂMPADA</span>
+                  <span class="card-badge" id="c3-ledBadge">OFF</span>
+                </div>
+                <div class="led-visual-row">
+                  <div class="led-bulb" id="c3-ledBulb">
+                    <div class="led-core"></div>
+                    <div class="led-ring"></div>
+                  </div>
+                  <div class="led-info">
+                    <span class="led-state" id="c3-ledState">Desligado</span>
+                    <span class="led-pin">Sala de Estar</span>
+                  </div>
+                </div>
+                <button id="btn-c3-led" class="btn btn-primary" onclick="toggleLed(3)">&#9654; LIGAR</button>
+              </div>
+              <div class="card card-ac">
+                <div class="card-glow card-glow-ac" id="c3-acGlow"></div>
+                <div class="card-header-row">
+                  <span class="card-label">AR-CONDICIONADO</span>
+                  <span class="card-badge ac-badge" id="c3-acBadge">OFF</span>
+                </div>
+                <div class="led-visual-row">
+                  <div class="ac-bulb" id="c3-acBulb">
+                    <div class="ac-core"></div>
+                    <div class="ac-ring"></div>
+                  </div>
+                  <div class="led-info">
+                    <span class="led-state" id="c3-acState">Desligado</span>
+                    <span class="led-pin">Cooler / Ventoinha</span>
+                  </div>
+                </div>
+                <button id="btn-c3-ac" class="btn btn-ac" onclick="toggleAc(3)">&#9654; LIGAR</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /casa3 -->
+
+    </div><!-- /layout -->
   </main>
 
   <footer>
