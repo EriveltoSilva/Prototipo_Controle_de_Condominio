@@ -90,6 +90,9 @@ export class SerialManager {
       gbi: (fields.GBI as GateState) ?? 'C',
       gbo: (fields.GBO as GateState) ?? 'C',
       tle: fields.TLE === '1',
+      ldr: parseFloat(fields.LDR ?? '0'),
+      sla: fields.SLA === '1',
+      bzr: fields.BZR === '1',
       timestamp: new Date()
     }
   }

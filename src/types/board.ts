@@ -15,6 +15,9 @@ export interface BoardData {
   gbi: GateState
   gbo: GateState
   tle: boolean
+  ldr: number   // LDR darkness percentage (0–100)
+  sla: boolean  // streetlight auto mode active
+  bzr: boolean  // buzzer alarm active
   timestamp: Date
 }
 

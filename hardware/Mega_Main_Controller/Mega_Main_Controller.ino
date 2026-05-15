@@ -1,27 +1,32 @@
 /**
  * AUTOR...:  Erivelto Silva
- * PROJECTO: Centralidade do Kilamba — Sistema de Controlo Integrado
- * MCU.....:    Arduino Mega 2560
- * DATA....:   09-05-2026
+ * PROJECTO:  Centralidade do Kilamba — Sistema de Controlo Integrado
+ * MCU.....:  Arduino Mega 2560
+ * DATA....:  09-05-2026
  *
  * Componentes:
  *   - 2 Semáforos (3 LEDs cada: Vermelho/Amarelo/Verde)
- *   - 3 Luzes de Rua (LED/Relé)
- *   - Sensor de Fogo (digital)
- *   - Sensor de Chuva (digital)
+ *   - 3 Luzes de Rua (LED/Relé) com controlo automático por LDR (A0)
+ *   - Sensor de Fogo (digital — PIN 10)
+ *   - Sensor de Chuva (digital — PIN 11)
  *   - Sensor de Nível de Água HC-SR04 (ultrassónico)
  *   - 4 Servos de Portão (Lado A: entrada+saída, Lado B: entrada+saída) - (Laranja: Sinal PWM, Castanho: GND, Vermelho: +5v)
  *   - LCD 16x4 I2C (rotação de páginas a cada 2 s)
+ *   - LDR (PIN A0) — controlo automático das luzes de rua
+ *   - Buzzer (PIN 12) — alarme de fogo e nível de água baixo
  *
  * Protocolo Serial (→ Desktop):
  *   $TL1:<R|Y|G>,TL2:<R|Y|G>,SL1:<0|1>,SL2:<0|1>,SL3:<0|1>,
  *    FR:<0|1>,WL:<cm>,RN:<0|1>,
- *    GAI:<O|C>,GAO:<O|C>,GBI:<O|C>,GBO:<O|C>,TLE:<0|1>#\n
+ *    GAI:<O|C>,GAO:<O|C>,GBI:<O|C>,GBO:<O|C>,TLE:<0|1>,
+ *    LDR:<pct>,SLA:<0|1>,BZR:<0|1>#\n
  *
  * Comandos (Desktop →, 3 chars + '\n'):
  *   TLO                                                            — Ligar semáforos (ciclo automático)
  *   TLX                                                            — Desligar semáforos (todos apagados)
- *   L1O/L1X  L2O/L2X  L3O/L3X  LOO(LIGAR TODAS) LXX(APAGAR TODAS)  — Luzes de Rua (X=apagar)
+ *   L1O/L1X  L2O/L2X  L3O/L3X  LOO(LIGAR TODAS) LXX(APAGAR TODAS)  — Luzes de Rua (só modo manual)
+ *   LSA                                                            — Luzes de Rua modo Automático (LDR)
+ *   LSM                                                            — Luzes de Rua modo Manual
  *   AIO/AIC  AOO/AOC                                               — Portão A Entrada/Saída Open/Close
  *   BIO/BIC  BOO/BOC                                               — Portão B Entrada/Saída Open/Close
  *   REQ                                                            — Pedir pacote imediato
@@ -104,6 +109,18 @@
 // ============================================================
 #define TL_GREEN_MS 10000UL  // duração da fase verde
 #define TL_YELLOW_MS 3000UL  // duração da fase amarela
+
+// ============================================================
+// PINOS — LDR E BUZZER
+// ============================================================
+#define LDR_PIN     A0
+#define BUZZER_PIN  12
+
+// ============================================================
+// LIMIARES — LDR / MODO AUTOMÁTICO
+// ============================================================
+#define LDR_DARK_THRESHOLD 50.0f  // % escuridão para ligar luzes automáticas
+#define LDR_READ_INTERVAL  1000UL // leitura do LDR a cada 1 s
 
 // ============================================================
 // MISC
@@ -190,6 +207,7 @@ LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 
 static uint32_t lastDataSend = 0;
 static uint32_t lastLcdChange = 0;
+static uint32_t lastLdrRead = 0;
 static uint8_t lcdPage = 0;
 
 static char cmdBuf[CMD_LENGTH + 1];
@@ -199,6 +217,13 @@ static uint8_t cmdIdx = 0;
 static bool tlEnabled = true;
 static uint8_t tlPhase = 0;  // 0=TL1 verde, 1=TL1 amarelo, 2=TL2 verde, 3=TL2 amarelo
 static uint32_t tlTimer = 0;
+
+// LDR e modo automático das luzes de rua
+float ldrDarkness = 0.0f; // 0 = claro, 100 = escuro
+bool  slAutoMode  = true;  // true = controlo automático por LDR
+
+// Buzzer
+bool buzzerActive = false;
 
 // ============================================================
 // PROTÓTIPOS
@@ -225,6 +250,7 @@ const char *gateStateName(GateState s);
 void readWaterLevel(WaterLevelSensor *ws);
 void readFire(FireSensor *fs);
 void readRain(RainSensor *rs);
+void readLDR();
 const char *waterStatusName(float dist);
 
 void sendDataPacket();
@@ -260,6 +286,8 @@ void setup() {
 
   pinMode(FIRE_SENSOR_PIN, INPUT_PULLUP);
   pinMode(RAIN_SENSOR_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
 
   lcd.init();
   lcd.backlight();
@@ -283,6 +311,9 @@ void setup() {
 // ============================================================
 
 void loop() {
+  // Leitura rápida do sensor de fogo (a cada 50 ms via LOOP_DELAY_MS)
+  readFire(&fire);
+
   updateTrafficLights();
   handleSerialCommand();
 
@@ -291,11 +322,31 @@ void loop() {
   checkAutoClose(&servoBIn,  &gateB.entranceState, &gateB.entranceTimer);
   checkAutoClose(&servoBOut, &gateB.exitState,     &gateB.exitTimer);
 
+  // LDR + controlo automático das luzes de rua (a cada 1 s)
+  if ((uint32_t)(millis() - lastLdrRead) >= LDR_READ_INTERVAL) {
+    lastLdrRead = millis();
+    readLDR();
+    if (slAutoMode) {
+      bool lightsOn = (ldrDarkness >= LDR_DARK_THRESHOLD);
+      setStreetlight(&sl1, lightsOn);
+      setStreetlight(&sl2, lightsOn);
+      setStreetlight(&sl3, lightsOn);
+    }
+  }
+
+  // Buzzer: activa quando fogo OU nível de água baixo
+  buzzerActive = fire.detected ||
+                 (waterLevel.distanceCm > 0.0f && waterLevel.distanceCm >= WATER_HIGH_CM);
+  digitalWrite(BUZZER_PIN, buzzerActive ? HIGH : LOW);
+
   if ((uint32_t)(millis() - lastDataSend) >= DATA_SEND_MS) {
     lastDataSend = millis();
-    readFire(&fire);
     readRain(&rain);
     readWaterLevel(&waterLevel);
+    // Reavalia buzzer com nível de água actualizado
+    buzzerActive = fire.detected ||
+                   (waterLevel.distanceCm > 0.0f && waterLevel.distanceCm >= WATER_HIGH_CM);
+    digitalWrite(BUZZER_PIN, buzzerActive ? HIGH : LOW);
     sendDataPacket();
     digitalWrite(STATUS_LED_PIN, !digitalRead(STATUS_LED_PIN));
   }
@@ -415,6 +466,11 @@ void readRain(RainSensor *rs) {
   rs->raining = digitalRead(rs->pin);  // HIGH activo na maioria dos módulos
 }
 
+void readLDR() {
+  int raw = analogRead(LDR_PIN);          // 0 = claro, 1023 = escuro
+  ldrDarkness = (raw / 1023.0f) * 100.0f;
+}
+
 const char *waterStatusName(float dist) {
   if (dist <= 0.0f) return "ERRO";
   if (dist < WATER_LOW_CM) return "ALTO";   // sensor perto da agua → nível alto
@@ -454,6 +510,12 @@ void sendDataPacket() {
   Serial.print(gateB.exitState == GATE_OPEN ? 'O' : 'C');
   Serial.print(F(",TLE:"));
   Serial.print(tlEnabled ? 1 : 0);
+  Serial.print(F(",LDR:"));
+  Serial.print(ldrDarkness, 1);
+  Serial.print(F(",SLA:"));
+  Serial.print(slAutoMode ? 1 : 0);
+  Serial.print(F(",BZR:"));
+  Serial.print(buzzerActive ? 1 : 0);
   Serial.print(PACKET_END);
   Serial.println();
 }
@@ -496,6 +558,9 @@ void handleSerialCommand() {
             setStreetlight(&sl2, true);
             setStreetlight(&sl3, true);
           }
+          // Modo das luzes de rua
+          else if (c0 == 'L' && c1 == 'S' && c2 == 'A') slAutoMode = true;
+          else if (c0 == 'L' && c1 == 'S' && c2 == 'M') slAutoMode = false;
           // Portão A — Entrada
           else if (c0 == 'A' && c1 == 'I' && c2 == 'O')
             openGate(&servoAIn, &gateA.entranceState, &gateA.entranceTimer);
@@ -634,6 +699,13 @@ void lcdShowSensors() {
   } else {
     lcd.print(F("ERRO        "));
   }
+  // Linha 3: LDR e modo das luzes de rua  (max "LUZ:100% AUTO   " = 16 chars)
+  lcd.setCursor(-4, 3);
+  lcd.print(F("LUZ:"));
+  lcd.print((int)ldrDarkness);
+  lcd.print(F("% "));
+  lcd.print(slAutoMode ? F("AUTO") : F("MAN "));
+  lcd.print(buzzerActive ? F(" ALR") : F("    "));
 }
 
 void lcdShowGateA() {

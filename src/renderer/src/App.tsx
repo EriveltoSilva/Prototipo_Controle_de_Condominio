@@ -20,9 +20,12 @@ export default function App() {
   const sl1 = data?.sl1 ?? false;
   const sl2 = data?.sl2 ?? false;
   const sl3 = data?.sl3 ?? false;
-  const fr = data?.fr ?? false;
-  const wl = data?.wl ?? 0;
-  const rn = data?.rn ?? false;
+  const fr  = data?.fr  ?? false;
+  const wl  = data?.wl  ?? 0;
+  const rn  = data?.rn  ?? false;
+  const ldr = data?.ldr ?? 0;
+  const sla = data?.sla ?? true;
+  const bzr = data?.bzr ?? false;
   const gai = data?.gai ?? "C";
   const gao = data?.gao ?? "C";
   const gbi = data?.gbi ?? "C";
@@ -63,8 +66,8 @@ export default function App() {
           <GatePanel gai={gai} gao={gao} gbi={gbi} gbo={gbo} connected={status.connected} onSend={sendCommand} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 my-4">
-          <StreetlightPanel sl1={sl1} sl2={sl2} sl3={sl3} connected={status.connected} onSend={sendCommand} />
-          <SensorPanel fr={fr} rn={rn} />
+          <StreetlightPanel sl1={sl1} sl2={sl2} sl3={sl3} sla={sla} ldr={ldr} connected={status.connected} onSend={sendCommand} />
+          <SensorPanel fr={fr} rn={rn} bzr={bzr} />
         </div>
 
         {/* Reservoir — full width */}
